@@ -1,0 +1,26 @@
+{
+  "name": "rwanda-geo",
+  "version": "1.0.0",
+  "description": "Rwanda Geo Structure API",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "rwanda-geo-structure",
+    "rwanda"
+  ],
+  "author": "KIBONGO Simon Peter",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "rwanda-geo-structure": "^1.3.9"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
