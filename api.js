@@ -194,11 +194,11 @@ app.get("/villages", (req, res) => {
       ? `Villages in ${messageParts.join(", ")}`
       : "All villages";
 
-    res.json([{
+    res.json({
       status: "success",
       message,
       data
-    }]);
+    });
   } catch (error) {
     res.status(500).json({
       status: "error",
