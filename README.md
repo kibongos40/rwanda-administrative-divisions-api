@@ -7,10 +7,11 @@ A simple Express.js API for querying Rwanda's administrative divisions: Province
 
 ## Features
 - Get all provinces
-- Get districts by province
-- Get sectors by district
-- Get cells by sector
-- Get villages by cell
+- Get districts by province (POST and GET with query parameters)
+- Get sectors by district (POST and GET with query parameters)
+- Get cells by sector (POST and GET with query parameters)
+- Get villages by cell (POST and GET with query parameters)
+- Filter data using URL query parameters
 - Consistent JSON responses
 - Robust error handling
 - CORS enabled (open to all)
@@ -74,23 +75,52 @@ All responses are in the format:
 
 ### Districts
 - **POST /districts**
-  - **Body:** `{ "province": "Kigali City" }`
+  - **Body:** `{ "province": "Kigali" }`
   - Returns districts in the given province.
+
+- **GET /districts**
+  - **Query Parameters:** `?province=Kigali` (optional)
+  - Returns all districts or districts filtered by province.
+  - Examples:
+    - `/districts` - Returns all districts
+    - `/districts?province=Kigali` - Returns districts in Kigali
 
 ### Sectors
 - **POST /sectors**
-  - **Body:** `{ "province": "Kigali City", "district": "Gasabo" }`
+  - **Body:** `{ "province": "Kigali", "district": "Gasabo" }`
   - Returns sectors in the given district.
+
+- **GET /sectors**
+  - **Query Parameters:** `?province=...&district=...` (optional)
+  - Returns all sectors or sectors filtered by province and/or district.
+  - Examples:
+    - `/sectors` - Returns all sectors
+    - `/sectors?district=Gasabo` - Returns sectors in Gasabo district
+    - `/sectors?province=Kigali&district=Gasabo` - Returns sectors in Gasabo, Kigali
 
 ### Cells
 - **POST /cells**
-  - **Body:** `{ "province": "Kigali City", "district": "Gasabo", "sector": "Remera" }`
+  - **Body:** `{ "province": "Kigali", "district": "Gasabo", "sector": "Remera" }`
   - Returns cells in the given sector.
+
+- **GET /cells**
+  - **Query Parameters:** `?province=...&district=...&sector=...` (optional)
+  - Returns all cells or cells filtered by province, district, and/or sector.
+  - Examples:
+    - `/cells` - Returns all cells
+    - `/cells?province=Kigali&district=Gasabo&sector=Remera` - Returns cells in Remera, Gasabo, Kigali
 
 ### Villages
 - **POST /villages**
-  - **Body:** `{ "province": "Kigali City", "district": "Gasabo", "sector": "Remera", "cell": "Nyabisindu" }`
+  - **Body:** `{ "province": "Kigali", "district": "Gasabo", "sector": "Remera", "cell": "Nyabisindu" }`
   - Returns villages in the given cell.
+
+- **GET /villages**
+  - **Query Parameters:** `?province=...&district=...&sector=...&cell=...` (optional)
+  - Returns all villages or villages filtered by province, district, sector, and/or cell.
+  - Examples:
+    - `/villages` - Returns all villages
+    - `/villages?province=Kigali&district=Gasabo&sector=Remera&cell=Nyabisindu` - Returns villages in Nyabisindu, Remera, Gasabo, Kigali
 
 ---
 
@@ -102,17 +132,53 @@ All responses are in the format:
 
 ## Example Usage (with fetch in JavaScript)
 
+### Using GET endpoints with query parameters (Recommended)
+
 ```js
 // Get all provinces
 fetch('http://localhost:80/provinces')
   .then(res => res.json())
   .then(console.log);
 
+// Get all districts
+fetch('http://localhost:80/districts')
+  .then(res => res.json())
+  .then(console.log);
+
+// Get districts in a specific province
+fetch('http://localhost:80/districts?province=Kigali')
+  .then(res => res.json())
+  .then(console.log);
+
+// Get all sectors
+fetch('http://localhost:80/sectors')
+  .then(res => res.json())
+  .then(console.log);
+
+// Get sectors in a specific province
+fetch('http://localhost:80/sectors?province=Kigali')
+  .then(res => res.json())
+  .then(console.log);
+
+// Get sectors in a specific district
+fetch('http://localhost:80/sectors?province=Kigali&district=Gasabo')
+  .then(res => res.json())
+  .then(console.log);
+
+// Get villages with multiple filters
+fetch('http://localhost:80/villages?province=Kigali&district=Gasabo')
+  .then(res => res.json())
+  .then(console.log);
+```
+
+### Using POST endpoints (Legacy)
+
+```js
 // Get districts in a province
 fetch('http://localhost:80/districts', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ province: 'Kigali City' })
+  body: JSON.stringify({ province: 'Kigali' })
 })
   .then(res => res.json())
   .then(console.log);
@@ -121,7 +187,7 @@ fetch('http://localhost:80/districts', {
 fetch('http://localhost:80/sectors', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ province: 'Kigali City', district: 'Gasabo' })
+  body: JSON.stringify({ province: 'Kigali', district: 'Gasabo' })
 })
   .then(res => res.json())
   .then(console.log);
