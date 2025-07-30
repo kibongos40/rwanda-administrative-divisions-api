@@ -68,7 +68,11 @@ app.get("/districts", (req, res) => {
       data = getDistricts();
     }
 
-    res.json(data);
+    res.json({
+      status: "success",
+      message: province ? `Districts in ${province}` : "All districts",
+      data
+    });
   } catch (error) {
     res.status(500).json({
       status: "error",
@@ -104,7 +108,11 @@ app.get("/sectors", (req, res) => {
           ? `Sectors in ${district}`
           : "All sectors";
 
-    res.json(data);
+    res.json({
+      status: "success",
+      message,
+      data
+    });
   } catch (error) {
     res.status(500).json({
       status: "error",
@@ -142,7 +150,11 @@ app.get("/cells", (req, res) => {
       ? `Cells in ${messageParts.join(", ")}`
       : "All cells";
 
-    res.json(data);
+    res.json({
+      status: "success",
+      message,
+      data
+    });
   } catch (error) {
     res.status(500).json({
       status: "error",
@@ -182,7 +194,11 @@ app.get("/villages", (req, res) => {
       ? `Villages in ${messageParts.join(", ")}`
       : "All villages";
 
-    res.json(data);
+    res.json([{
+      status: "success",
+      message,
+      data
+    }]);
   } catch (error) {
     res.status(500).json({
       status: "error",
