@@ -1,6 +1,16 @@
 import express from "express";
 import cors from "cors";
-import { getProvinces, getDistrictsByProvince, getSectorsByDistrict, getCellsBySector, getVillagesByCell } from "rwanda-geo-structure";
+import {
+  getProvinces,
+  getDistrictsByProvince,
+  getSectorsByDistrict,
+  getCellsBySector,
+  getVillagesByCell,
+  getDistricts,
+  getSectors,
+  getCells,
+  getVillages
+} from "rwanda-geo-structure";
 
 const app = express();
 app.use(cors());
@@ -31,6 +41,156 @@ endpoints.forEach(([route, fn, params, method, msg]) => {
       res.status(500).json({ status: "error", message: `Failed to fetch ${route.replace("/","")}` , data: null, error: error.message });
     }
   });
+});
+
+// Helper function to filter data based on query parameters
+const filterData = (data, filters) => {
+  if (!filters || Object.keys(filters).length === 0) return data;
+
+  return data.filter(item => {
+    return Object.entries(filters).every(([key, value]) => {
+      if (!value) return true; // Skip empty filters
+      return item[key] && item[key].toLowerCase() === value.toLowerCase();
+    });
+  });
+};
+
+// GET endpoints with query parameter filtering
+app.get("/districts", (req, res) => {
+  try {
+    const { province } = req.query;
+    let data;
+
+    if (province) {
+      data = getDistrictsByProvince(province);
+    } else {
+      // Get all districts and filter if needed
+      data = getDistricts();
+    }
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch districts",
+      data: null,
+      error: error.message
+    });
+  }
+});
+
+app.get("/sectors", (req, res) => {
+  try {
+    const { province, district } = req.query;
+    let data;
+
+    if (province && district) {
+      // Use the specific function if both province and district are provided
+      data = getSectorsByDistrict(province, district);
+    } else {
+      // Get all sectors and filter based on available query parameters
+      data = getSectors();
+      const filters = {};
+      if (province) filters.province = province;
+      if (district) filters.district = district;
+      data = filterData(data, filters);
+    }
+
+    const message = province && district
+      ? `Sectors in ${district}, ${province}`
+      : province
+        ? `Sectors in ${province}`
+        : district
+          ? `Sectors in ${district}`
+          : "All sectors";
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch sectors",
+      data: null,
+      error: error.message
+    });
+  }
+});
+
+app.get("/cells", (req, res) => {
+  try {
+    const { province, district, sector } = req.query;
+    let data;
+
+    if (province && district && sector) {
+      // Use the specific function if all parameters are provided
+      data = getCellsBySector(province, district, sector);
+    } else {
+      // Get all cells and filter based on available query parameters
+      data = getCells();
+      const filters = {};
+      if (province) filters.province = province;
+      if (district) filters.district = district;
+      if (sector) filters.sector = sector;
+      data = filterData(data, filters);
+    }
+
+    const messageParts = [];
+    if (sector) messageParts.push(sector);
+    if (district) messageParts.push(district);
+    if (province) messageParts.push(province);
+
+    const message = messageParts.length > 0
+      ? `Cells in ${messageParts.join(", ")}`
+      : "All cells";
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch cells",
+      data: null,
+      error: error.message
+    });
+  }
+});
+
+app.get("/villages", (req, res) => {
+  try {
+    const { province, district, sector, cell } = req.query;
+    let data;
+
+    if (province && district && sector && cell) {
+      // Use the specific function if all parameters are provided
+      data = getVillagesByCell(province, district, sector, cell);
+    } else {
+      // Get all villages and filter based on available query parameters
+      data = getVillages();
+      const filters = {};
+      if (province) filters.province = province;
+      if (district) filters.district = district;
+      if (sector) filters.sector = sector;
+      if (cell) filters.cell = cell;
+      data = filterData(data, filters);
+    }
+
+    const messageParts = [];
+    if (cell) messageParts.push(cell);
+    if (sector) messageParts.push(sector);
+    if (district) messageParts.push(district);
+    if (province) messageParts.push(province);
+
+    const message = messageParts.length > 0
+      ? `Villages in ${messageParts.join(", ")}`
+      : "All villages";
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch villages",
+      data: null,
+      error: error.message
+    });
+  }
 });
 
 // Global error handler
