@@ -16,196 +16,140 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const endpoints = [
-  ["/provinces", getProvinces, [], "get", "List of provinces"],
-  ["/districts", getDistrictsByProvince, ["province"], "post", "Districts in %s"],
-  ["/sectors", getSectorsByDistrict, ["province", "district"], "post", "Sectors in %s, %s"],
-  ["/cells", getCellsBySector, ["province", "district", "sector"], "post", "Cells in %s, %s, %s"],
-  ["/villages", getVillagesByCell, ["province", "district", "sector", "cell"], "post", "Villages in %s, %s, %s, %s"]
-];
+const capitalize = (str) => typeof str === 'string' ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : str;
 
-endpoints.forEach(([route, fn, params, method, msg]) => {
-  app[method](route, (req, res) => {
-    try {
-      const args = params.map(p => req[method === "get" ? "query" : "body"][p]);
-      if (params.length && args.some(a => !a)) {
-        return res.status(400).json({ status: "error", message: `${params.join(", ")} required`, data: null });
-      }
-      const data = fn(...args);
-      res.json({
-        status: "success",
-        message: msg.replace(/%s/g, () => args.shift()),
-        data
-      });
-    } catch (error) {
-      res.status(500).json({ status: "error", message: `Failed to fetch ${route.replace("/","")}` , data: null, error: error.message });
-    }
-  });
-});
+const fillParents = (query) => {
+  let { province, district, sector, cell } = query;
+  
+  // District names are unique across the country, so we can safely auto-resolve the province
+  if (district && !province) {
+    province = getProvinces().find(p => getDistrictsByProvince(p).includes(district));
+  }
+  
+  // We do not auto-resolve from sector or cell because their names are often duplicated across different districts
+  
+  return { province, district, sector, cell };
+};
 
-// Helper function to filter data based on query parameters
-const filterData = (data, filters) => {
-  if (!filters || Object.keys(filters).length === 0) return data;
-
-  return data.filter(item => {
-    return Object.entries(filters).every(([key, value]) => {
-      if (!value) return true; // Skip empty filters
-      return item[key] && item[key].toLowerCase() === value.toLowerCase();
-    });
+const getParams = (req) => {
+  const input = req.method === "POST" ? req.body : req.query;
+  return fillParents({
+    province: capitalize(input.province),
+    district: capitalize(input.district),
+    sector: capitalize(input.sector),
+    cell: capitalize(input.cell)
   });
 };
 
-// GET endpoints with query parameter filtering
-app.get("/districts", (req, res) => {
+app.get("/", (req, res) => res.json({ status: "success", message: "Welcome to Rwanda Administrative Divisions API", data: null }));
+
+app.get("/provinces", (req, res) => {
+  res.json({ status: "success", message: "List of provinces", data: getProvinces() });
+});
+
+app.all("/districts", (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'POST') return next();
   try {
-    const { province } = req.query;
-    let data;
+    const { province } = getParams(req);
 
     if (province) {
-      data = getDistrictsByProvince(province);
-    } else {
-      // Get all districts and filter if needed
-      data = getDistricts();
+      return res.json({ status: "success", message: `Districts in ${province}`, data: getDistrictsByProvince(province) });
     }
 
-    res.json({
-      status: "success",
-      message: province ? `Districts in ${province}` : "All districts",
-      data
-    });
+    if (req.method === 'POST') {
+      return res.status(400).json({ status: "error", message: "province required", data: null });
+    }
+
+    res.json({ status: "success", message: "All districts", data: getDistricts() });
   } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch districts",
-      data: null,
-      error: error.message
-    });
+    res.status(500).json({ status: "error", message: "Failed to fetch districts", data: null, error: error.message });
   }
 });
 
-app.get("/sectors", (req, res) => {
+app.all("/sectors", (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'POST') return next();
   try {
-    const { province, district } = req.query;
-    let data;
+    const { province, district } = getParams(req);
 
     if (province && district) {
-      // Use the specific function if both province and district are provided
-      data = getSectorsByDistrict(province, district);
-    } else {
-      // Get all sectors and filter based on available query parameters
-      data = getSectors();
-      const filters = {};
-      if (province) filters.province = province;
-      if (district) filters.district = district;
-      data = filterData(data, filters);
+      return res.json({ status: "success", message: `Sectors in ${district}, ${province}`, data: getSectorsByDistrict(province, district) });
     }
 
-    const message = province && district
-      ? `Sectors in ${district}, ${province}`
-      : province
-        ? `Sectors in ${province}`
-        : district
-          ? `Sectors in ${district}`
-          : "All sectors";
+    if (province) {
+      const data = getDistrictsByProvince(province).flatMap(d => getSectorsByDistrict(province, d));
+      return res.json({ status: "success", message: `Sectors in ${province}`, data });
+    }
 
-    res.json({
-      status: "success",
-      message,
-      data
-    });
+    if (req.method === 'POST') {
+      return res.status(400).json({ status: "error", message: "district required", data: null });
+    }
+
+    res.json({ status: "success", message: "All sectors", data: getSectors() });
   } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch sectors",
-      data: null,
-      error: error.message
-    });
+    res.status(500).json({ status: "error", message: "Failed to fetch sectors", data: null, error: error.message });
   }
 });
 
-app.get("/cells", (req, res) => {
+app.all("/cells", (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'POST') return next();
   try {
-    const { province, district, sector } = req.query;
-    let data;
+    const { province, district, sector } = getParams(req);
 
     if (province && district && sector) {
-      // Use the specific function if all parameters are provided
-      data = getCellsBySector(province, district, sector);
-    } else {
-      // Get all cells and filter based on available query parameters
-      data = getCells();
-      const filters = {};
-      if (province) filters.province = province;
-      if (district) filters.district = district;
-      if (sector) filters.sector = sector;
-      data = filterData(data, filters);
+      return res.json({ status: "success", message: `Cells in ${sector}, ${district}, ${province}`, data: getCellsBySector(province, district, sector) });
     }
 
-    const messageParts = [];
-    if (sector) messageParts.push(sector);
-    if (district) messageParts.push(district);
-    if (province) messageParts.push(province);
+    if (province && district) {
+      const data = getSectorsByDistrict(province, district).flatMap(s => getCellsBySector(province, district, s));
+      return res.json({ status: "success", message: `Cells in ${district}, ${province}`, data });
+    }
 
-    const message = messageParts.length > 0
-      ? `Cells in ${messageParts.join(", ")}`
-      : "All cells";
+    if (province) {
+      const data = getDistrictsByProvince(province).flatMap(d => getSectorsByDistrict(province, d).flatMap(s => getCellsBySector(province, d, s)));
+      return res.json({ status: "success", message: `Cells in ${province}`, data });
+    }
+    
+    if (req.method === 'POST') {
+      return res.status(400).json({ status: "error", message: "sector required", data: null });
+    }
 
-    res.json({
-      status: "success",
-      message,
-      data
-    });
+    res.json({ status: "success", message: "All cells", data: getCells() });
   } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch cells",
-      data: null,
-      error: error.message
-    });
+    res.status(500).json({ status: "error", message: "Failed to fetch cells", data: null, error: error.message });
   }
 });
 
-app.get("/villages", (req, res) => {
+app.all("/villages", (req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'POST') return next();
   try {
-    const { province, district, sector, cell } = req.query;
-    let data;
+    const { province, district, sector, cell } = getParams(req);
 
     if (province && district && sector && cell) {
-      // Use the specific function if all parameters are provided
-      data = getVillagesByCell(province, district, sector, cell);
-    } else {
-      // Get all villages and filter based on available query parameters
-      data = getVillages();
-      const filters = {};
-      if (province) filters.province = province;
-      if (district) filters.district = district;
-      if (sector) filters.sector = sector;
-      if (cell) filters.cell = cell;
-      data = filterData(data, filters);
+      return res.json({ status: "success", message: `Villages in ${cell}, ${sector}, ${district}, ${province}`, data: getVillagesByCell(province, district, sector, cell) });
     }
 
-    const messageParts = [];
-    if (cell) messageParts.push(cell);
-    if (sector) messageParts.push(sector);
-    if (district) messageParts.push(district);
-    if (province) messageParts.push(province);
+    if (province && district && sector) {
+      const data = getCellsBySector(province, district, sector).flatMap(c => getVillagesByCell(province, district, sector, c));
+      return res.json({ status: "success", message: `Villages in ${sector}, ${district}, ${province}`, data });
+    }
 
-    const message = messageParts.length > 0
-      ? `Villages in ${messageParts.join(", ")}`
-      : "All villages";
+    if (province && district) {
+      const data = getSectorsByDistrict(province, district).flatMap(s => getCellsBySector(province, district, s).flatMap(c => getVillagesByCell(province, district, s, c)));
+      return res.json({ status: "success", message: `Villages in ${district}, ${province}`, data });
+    }
 
-    res.json({
-      status: "success",
-      message,
-      data
-    });
+    if (province) {
+      const data = getDistrictsByProvince(province).flatMap(d => getSectorsByDistrict(province, d).flatMap(s => getCellsBySector(province, d, s).flatMap(c => getVillagesByCell(province, d, s, c))));
+      return res.json({ status: "success", message: `Villages in ${province}`, data });
+    }
+
+    if (req.method === 'POST') {
+      return res.status(400).json({ status: "error", message: "cell required", data: null });
+    }
+
+    res.json({ status: "success", message: "All villages", data: getVillages() });
   } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch villages",
-      data: null,
-      error: error.message
-    });
+    res.status(500).json({ status: "error", message: "Failed to fetch villages", data: null, error: error.message });
   }
 });
 

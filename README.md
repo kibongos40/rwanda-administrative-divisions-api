@@ -1,4 +1,5 @@
 # Rwanda Administrative Divisions API
+version: 2.0.0
 
 A simple Express.js API for querying Rwanda's administrative divisions: Provinces, Districts, Sectors, Cells, and Villages. Powered by the [`rwanda-geo-structure`](https://www.npmjs.com/package/rwanda-geo-structure) package.
 
@@ -81,46 +82,42 @@ All responses are in the format:
 - **GET /districts**
   - **Query Parameters:** `?province=Kigali` (optional)
   - Returns all districts or districts filtered by province.
-  - Examples:
-    - `/districts` - Returns all districts
-    - `/districts?province=Kigali` - Returns districts in Kigali
 
 ### Sectors
 - **POST /sectors**
-  - **Body:** `{ "province": "Kigali", "district": "Gasabo" }`
+  - **Body:** `{ "district": "Gasabo" }` *(Province is automatically resolved if omitted)*
   - Returns sectors in the given district.
 
 - **GET /sectors**
-  - **Query Parameters:** `?province=...&district=...` (optional)
-  - Returns all sectors or sectors filtered by province and/or district.
+  - **Query Parameters:** `?district=Gasabo` (optional) *(Province is automatically resolved if omitted)*
+  - Returns all sectors or sectors filtered by district.
   - Examples:
     - `/sectors` - Returns all sectors
     - `/sectors?district=Gasabo` - Returns sectors in Gasabo district
-    - `/sectors?province=Kigali&district=Gasabo` - Returns sectors in Gasabo, Kigali
 
 ### Cells
 - **POST /cells**
-  - **Body:** `{ "province": "Kigali", "district": "Gasabo", "sector": "Remera" }`
+  - **Body:** `{ "district": "Gasabo", "sector": "Remera" }` *(Province is automatically resolved if omitted)*
   - Returns cells in the given sector.
 
 - **GET /cells**
-  - **Query Parameters:** `?province=...&district=...&sector=...` (optional)
-  - Returns all cells or cells filtered by province, district, and/or sector.
+  - **Query Parameters:** `?district=Gasabo&sector=Remera` (optional) *(Province is automatically resolved if omitted)*
+  - Returns all cells or cells filtered by sector.
   - Examples:
     - `/cells` - Returns all cells
-    - `/cells?province=Kigali&district=Gasabo&sector=Remera` - Returns cells in Remera, Gasabo, Kigali
+    - `/cells?district=Gasabo&sector=Remera` - Returns cells in Remera sector
 
 ### Villages
 - **POST /villages**
-  - **Body:** `{ "province": "Kigali", "district": "Gasabo", "sector": "Remera", "cell": "Nyabisindu" }`
+  - **Body:** `{ "district": "Gasabo", "sector": "Remera", "cell": "Nyabisindu" }` *(Province is automatically resolved if omitted)*
   - Returns villages in the given cell.
 
 - **GET /villages**
-  - **Query Parameters:** `?province=...&district=...&sector=...&cell=...` (optional)
-  - Returns all villages or villages filtered by province, district, sector, and/or cell.
+  - **Query Parameters:** `?district=Gasabo&sector=Remera&cell=Nyabisindu` (optional) *(Province is automatically resolved if omitted)*
+  - Returns all villages or villages filtered by cell.
   - Examples:
     - `/villages` - Returns all villages
-    - `/villages?province=Kigali&district=Gasabo&sector=Remera&cell=Nyabisindu` - Returns villages in Nyabisindu, Remera, Gasabo, Kigali
+    - `/villages?district=Gasabo&sector=Remera&cell=Nyabisindu` - Returns villages in Nyabisindu cell
 
 ---
 
@@ -160,13 +157,18 @@ fetch('http://localhost:80/sectors?province=Kigali')
   .then(res => res.json())
   .then(console.log);
 
-// Get sectors in a specific district
-fetch('http://localhost:80/sectors?province=Kigali&district=Gasabo')
+// Get sectors in a specific district (province is auto-resolved)
+fetch('http://localhost:80/sectors?district=Gasabo')
   .then(res => res.json())
   .then(console.log);
 
-// Get villages with multiple filters
-fetch('http://localhost:80/villages?province=Kigali&district=Gasabo')
+// Get cells in a specific sector (requires district, province auto-resolved)
+fetch('http://localhost:80/cells?district=Gasabo&sector=Remera')
+  .then(res => res.json())
+  .then(console.log);
+
+// Get villages in a specific cell
+fetch('http://localhost:80/villages?district=Gasabo&sector=Remera&cell=Nyabisindu')
   .then(res => res.json())
   .then(console.log);
 ```
@@ -183,11 +185,11 @@ fetch('http://localhost:80/districts', {
   .then(res => res.json())
   .then(console.log);
 
-// Get sectors in a district
+// Get sectors in a district (Province is optional and auto-resolved)
 fetch('http://localhost:80/sectors', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ province: 'Kigali', district: 'Gasabo' })
+  body: JSON.stringify({ district: 'Gasabo' })
 })
   .then(res => res.json())
   .then(console.log);
