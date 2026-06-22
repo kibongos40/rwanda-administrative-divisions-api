@@ -3,7 +3,7 @@ version: 2.0.0
 
 A simple Express.js API for querying Rwanda's administrative divisions: Provinces, Districts, Sectors, Cells, and Villages. Powered by the [`rwanda-geo-structure`](https://www.npmjs.com/package/rwanda-geo-structure) package.
 
-- **Live API:** [https://rda-ad-divisions.onrender.com/](https://rda-ad-divisions.onrender.com/)
+- **Live API:** [https://rda-ad-divisions.onrender.com/](https://rda-ad-divisions.onrender.com/) or [https://rda-api.kibongo.com/](https://rda-api.kibongo.com) 
 - **GitHub Repo:** [kibongos40/rwanda-administrative-divisions-api](https://github.com/kibongos40/rwanda-administrative-divisions-api)
 
 ## Features
